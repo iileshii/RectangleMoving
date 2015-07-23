@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.DragEvent;
@@ -15,33 +14,39 @@ import android.widget.FrameLayout;
 
 
 /**
- * @class creates Custom View
+ * Custom View
  * Created by Alexey on 22.07.2015.
  */
 public class RectangleView extends View {
+    // Set Rectangle Coordinates
     private static final int X_POINT_DP = 0;
     private static final int Y_POINT_DP = 0;
 
     private static final int WIDTH_DP = 400;
     private static final int HEIGHT_DP = 200;
 
-    private static final String RECTSAGLEVIEW_TAG = "My view";
+    // View border params
+    private static final int LEFT_VIEW_BORDER = 0;
+    private static final int TOP_VIEW_BORDER = 0;
+    private static int RIGHT_VIEW_BORDER = WIDTH_DP;
+    private static int BOTTOM_VIEW_BORDER = HEIGHT_DP;
 
+    // Drawing and its params
     private Paint paint;
     private Rect rectangle;
 
+    //Start point of rectangle
     private int currentX;
     private int currentY;
 
-
+    //Just constructor
     public RectangleView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
+    //Set drawing params and Listeners to view
     private void init() {
-        setTag(RECTSAGLEVIEW_TAG);
-
         paint = new Paint();
         setColor(Color.GREEN);
         rectangle = new Rect();
@@ -60,13 +65,15 @@ public class RectangleView extends View {
         return currentY;
     }
 
+    //Don't work if the rectangle is out of border
     public void setRect(int dX, int dY) {
         int left = X_POINT_DP + dX;
         int right = X_POINT_DP + WIDTH_DP + dX;
         int top = Y_POINT_DP + dY;
         int bottom = Y_POINT_DP + HEIGHT_DP + dY;
 
-        if (left < 0 || top < 0 || right > 720 || bottom > 1100) return;
+        if (left < LEFT_VIEW_BORDER || top < TOP_VIEW_BORDER || right > RIGHT_VIEW_BORDER || bottom > BOTTOM_VIEW_BORDER)
+            return;
 
         currentX = left;
         currentY = top;
@@ -78,14 +85,23 @@ public class RectangleView extends View {
         paint.setColor(color);
     }
 
+    //Check point if it in the rectangle
     public boolean isRectangle(int dX, int dY) {
         int right = currentX + WIDTH_DP;
         int bottom = currentY + HEIGHT_DP;
-        boolean result;
-        result = (dX >= currentX) && (dX <= right) && (dY >= currentY) && (dY <= bottom);
-        return result;
+
+        return (dX >= currentX) && (dX <= right) && (dY >= currentY) && (dY <= bottom);
     }
 
+    //Determine borders of screen
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        RIGHT_VIEW_BORDER = getRight();
+        BOTTOM_VIEW_BORDER = getBottom();
+    }
+
+    //Let's draw it!
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -93,7 +109,8 @@ public class RectangleView extends View {
     }
 
     private class CustomDragListener implements OnDragListener {
-        int firstX, firstY;
+        int firstX;
+        int firstY;
         FrameLayout.LayoutParams layoutParams;
 
         @Override
@@ -103,7 +120,7 @@ public class RectangleView extends View {
                     layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
                     break;
                 case DragEvent.ACTION_DRAG_ENTERED:
-                    firstX = (int) event.getX()
+                    firstX = (int) event.getX() //Check position of finger
                             - ((RectangleView) v).getCurrentX() + layoutParams.leftMargin;
                     firstY = (int) event.getY()
                             - ((RectangleView) v).getCurrentY() + layoutParams.topMargin;
@@ -111,7 +128,7 @@ public class RectangleView extends View {
                 case DragEvent.ACTION_DRAG_EXITED:
                     break;
                 case DragEvent.ACTION_DRAG_LOCATION:
-                    ((RectangleView) v)
+                    ((RectangleView) v) //Draw grey rectangle follows finger
                             .setRect((int) event.getX() - firstX, (int) event.getY() - firstY);
                     setColor(Color.LTGRAY);
                     invalidate();
@@ -119,7 +136,7 @@ public class RectangleView extends View {
                 case DragEvent.ACTION_DRAG_ENDED:
                     break;
                 case DragEvent.ACTION_DROP:
-                    ((RectangleView) v)
+                    ((RectangleView) v) //Settle rectangle here
                             .setRect((int) event.getX() - firstX, (int) event.getY() - firstY);
                     setColor(Color.GREEN);
                     invalidate();
@@ -132,27 +149,19 @@ public class RectangleView extends View {
     }
 
     private class CustomTouchListener implements OnTouchListener {
-        Point fingerPosition0;
-        Point fingerPosition1;
-
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             switch (event.getAction() & MotionEvent.ACTION_MASK) {
                 case MotionEvent.ACTION_DOWN:
-                    fingerPosition0 = new Point((int) event.getX(), (int) event.getY());
+                    // If a finger touched - do nothing
                     break;
                 case MotionEvent.ACTION_MOVE:
+                    // If a finger moving and it's in rectangle do start drag!
                     if (isRectangle((int) event.getX(), (int) event.getY())) {
-                        fingerPosition1 = new Point((int) event.getX(), (int) event.getY());
-                        int dX = fingerPosition1.x - fingerPosition0.x;
-                        int dY = fingerPosition1.y - fingerPosition0.y;
-                        double distPosition = Math.sqrt(dX * dX + dY * dY);
-                        if (distPosition > 1f) {
-                            ClipData data = ClipData.newPlainText("", "");
-                            DragShadowBuilder shadowBuilder = new DragShadowBuilder();
-                            v.startDrag(data, shadowBuilder, v, 0);
-                            v.setVisibility(VISIBLE);
-                        }
+                        ClipData data = ClipData.newPlainText("", "");
+                        DragShadowBuilder shadowBuilder = new DragShadowBuilder();
+                        v.startDrag(data, shadowBuilder, v, 0);
+                        v.setVisibility(VISIBLE);
                     }
                     break;
             }
