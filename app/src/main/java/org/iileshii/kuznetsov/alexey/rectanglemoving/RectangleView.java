@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -126,6 +127,8 @@ public class RectangleView extends View {
                             - ((RectangleView) v).getCurrentY() + layoutParams.topMargin;
                     break;
                 case DragEvent.ACTION_DRAG_EXITED:
+                    setColor(Color.GREEN);
+                    invalidate();
                     break;
                 case DragEvent.ACTION_DRAG_LOCATION:
                     ((RectangleView) v) //Draw grey rectangle follows finger
@@ -153,7 +156,7 @@ public class RectangleView extends View {
         public boolean onTouch(View v, MotionEvent event) {
             switch (event.getAction() & MotionEvent.ACTION_MASK) {
                 case MotionEvent.ACTION_DOWN:
-                    // If a finger touched - do nothing
+                    // If a finger touches - do nothing
                     break;
                 case MotionEvent.ACTION_MOVE:
                     // If a finger moving and it's in rectangle do start drag!
@@ -163,6 +166,9 @@ public class RectangleView extends View {
                         v.startDrag(data, shadowBuilder, v, 0);
                         v.setVisibility(VISIBLE);
                     }
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    setColor(Color.GREEN);
                     break;
             }
             return true;
